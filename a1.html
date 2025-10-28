@@ -1,5 +1,1647 @@
-<html>
-    <h1> Saad </h1>
-    <h2>Testing</h2>
-    <h3>ok now</h3>
-    <h3> conflict</h3>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Image-Vector Quote System - Editable Table</title>
+<link rel="stylesheet" href="styles/design-system.css" />
+<script>try{ document.title = 'Image-Vector Quote System - Editable Table'; }catch(_){}</script>
+<script src="scripts/utils.js"></script>
+<style>
+  /* using shared design-system tokens; local overrides removed */
+  *{box-sizing:border-box}
+  body{font-family:var(--font-sans);margin:0;background:var(--bg);color:var(--text)}
+  .app{max-width:1400px;margin:18px auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+  .topbar{display:flex;gap:8px;align-items:center}
+  .search{flex:1;display:flex;gap:8px;align-items:center}
+  input[type=text],select, button.simple{padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-size:14px}
+  button{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:8px;cursor:pointer}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid color-mix(in oklab, var(--accent), #000 16%)}
+  button.warn{background:#e65f5f}
+  /* Ensure delete (ghost warn) buttons have white background but red color */
+  button.ghost.warn{background:#fff;color:#e65f5f;border:1px solid rgba(230,95,95,0.35)}
+  button.ghost.warn:hover{background:color-mix(in oklab, #e65f5f, #fff 96%)}
+  .container{display:flex;gap:16px}
+  .left{flex:1;min-width:520px}
+  .right{width:800px}
+  .card{background:var(--surface);border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(20,20,50,0.06)}
+  .svgWrap{position:relative;border-radius:8px;overflow:hidden;background:#222;height:520px;display:flex;align-items:center;justify-content:center}
+  #mainSVG{width:100%;height:100%;display:block;transform-origin:0 0;transition:transform 120ms linear;pointer-events:auto}
+  .svghost{position:absolute;left:12px;top:12px;color:#fff;font-size:13px;background:rgba(0,0,0,0.25);padding:6px;border-radius:6px}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  th,td{padding:8px;border:1px solid var(--border);text-align:left;font-size:13px;overflow:hidden}
+  th{background:var(--surface-2);position:relative}
+  .countInput{width:72px;padding:6px;border-radius:6px;border:1px solid var(--border)}
+  .listWrap{max-height:640px;overflow:auto}
+  .small{font-size:13px;color:var(--muted)}
+  .adminBtn{margin-left:auto}
+  .modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:99}
+  .modalCard{background:#fff;padding:16px;border-radius:8px;max-width:1000px;width:100%;max-height:90vh;overflow:auto}
+  .row{display:flex;gap:8px;align-items:center}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .tag{background:var(--accent-50);color:var(--accent-800);padding:6px 10px;border-radius:8px;font-size:13px;border:1px solid color-mix(in oklab, var(--accent), #fff 80%)}
+  .undo-btn{position:fixed;bottom:20px;right:20px;z-index:200;padding:8px 10px;border-radius:8px;background:#ff7b00;color:#fff;border:none}
+  .undo-btn:hover{ filter: brightness(0.95); }
+  .helper-point{fill:var(--accent);stroke:#fff;stroke-width:1;pointer-events:none}
+  .section-overlay{fill:var(--overlay-fill);stroke:var(--overlay-stroke);stroke-width:2}
+  .draggable-point{fill:#ff5252;stroke:#fff;stroke-width:1;cursor:move}
+  /* column header editing */
+  .col-label{display:none;width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface)}
+  .col-label-text{display:inline-block;width:100%;padding:6px 80px 6px 24px}
+  .col-actions{position:absolute;right:16px;top:6px;display:flex;gap:6px;align-items:center;opacity:0;transition:opacity .12s ease}
+  th:hover .col-actions{opacity:1}
+  .col-delete{background:#fff;color:#e65f5f;border:1px solid rgba(230,95,95,0.12);padding:4px 6px;border-radius:6px;cursor:pointer}
+  .col-resize{position:absolute;right:0;top:0;height:100%;width:10px;cursor:col-resize;display:flex;align-items:center;justify-content:center}
+  .col-resize .grip{width:4px;height:22px;background:rgba(0,0,0,0.15);border-radius:2px}
+  .col-move{background:var(--surface);color:var(--text);border:1px solid color-mix(in oklab, var(--text), #fff 85%);padding:4px 6px;border-radius:6px;cursor:pointer}
+  .header-add{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  input.col-name{padding:8px;border-radius:6px;border:1px solid var(--border)}
+  .export-note{font-size:12px;color:var(--muted);margin-left:8px}
+  .cell-input{width:100%;border:0;background:transparent;padding:4px 2px;font-size:13px}
+  .cell-input:focus{outline:none;background:color-mix(in oklab, var(--accent), #fff 97%)}
+  .delete-col-confirm{font-size:12px;color:var(--muted);margin-left:6px}
+  /* Header drag-and-drop for reordering */
+  .drag-handle{position:absolute;left:8px;top:0;width:16px;height:100%;cursor:grab;display:flex;align-items:center;justify-content:center;color:#999;opacity:.6;transition:opacity .12s ease}
+  th:hover .drag-handle{opacity:1}
+  .drag-handle:active{cursor:grabbing}
+  th.drop-left{box-shadow:inset 3px 0 0 var(--accent)}
+  th.drop-right{box-shadow:inset -3px 0 0 var(--accent)}
+  @media (max-width: 1100px){
+    .container{ flex-direction:column; }
+    .right{ width:auto; }
+  }
+  /* UI/UX enhancements */
+  /* Override garbled text icons with SVG-based approach */
+  .drag-handle::after{content:''}
+  .icon{width:16px;height:16px;display:inline-block;vertical-align:middle}
+  .topbar{position:sticky;top:8px;z-index:10}
+  button:hover{background:#0762c7}
+  button:focus-visible{outline:3px solid #eff6ff}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{border:1px solid color-mix(in oklab, var(--accent), #000 20%)}
+  button.ghost:hover{background:color-mix(in oklab, var(--accent), #fff 94%)}
+  .card{border:1px solid var(--border)}
+  .modalCard{border:1px solid var(--border);box-shadow:0 12px 28px rgba(0,0,0,.18)}
+  thead th{position:sticky;top:0;background:var(--surface-2);z-index:1;box-shadow:inset 0 -1px 0 var(--border)}
+  tbody tr:nth-child(even){background:color-mix(in oklab, var(--surface), var(--text) 2%)}
+  tbody tr:hover{background:color-mix(in oklab, var(--surface), var(--accent) 6%)}
+  .listWrap{border:1px solid var(--border);border-radius:8px}
+  #svgPlaceholder{font-size:14px}
+  @media(max-width:980px){.container{flex-direction:column}.right{width:100%}}
+  .brand-logo{color:#e53935;font-family:"Brush Script MT", cursive;font-size:34px;font-weight:400;letter-spacing:0;text-shadow:0 1px 0 rgba(0,0,0,.08);}
+  .brand-logo-img{ height: 40px; width:auto; display:block }
+  </style>
+  <link rel="stylesheet" href="styles/design-system.css" />
+  <script>
+    // Persist theme across pages
+    (function(){
+      try{
+        const saved = localStorage.getItem('theme');
+        if(saved==='dark') document.documentElement.setAttribute('data-theme','dark');
+      }catch(_){ }
+    })();
+  </script>
+<style>
+
+/* --- Help FAB and Right Drawer --- */
+.help-fab{
+  position:fixed; right:16px; bottom:16px; z-index:1000;
+  background:var(--accent); color:#fff; border:none; border-radius:999px;
+  padding:10px 14px; display:flex; align-items:center; gap:8px; cursor:pointer;
+  box-shadow:0 6px 18px rgba(0,0,0,0.18);
+}
+.help-fab .help-dot{ width:8px; height:8px; border-radius:50%; background:#fff; opacity:.9 }
+.help-fab:focus-visible{ outline:3px solid #eff6ff }
+.help-panel{
+  position:fixed; top:0; right:0; height:100vh; width:min(420px, 92vw);
+  transform:translateX(100%); transition:transform .2s ease-out;
+  background:var(--surface); color:var(--text); z-index:1100;
+  border-left:1px solid var(--border); box-shadow:-10px 0 30px rgba(0,0,0,.18);
+  display:flex; flex-direction:column;
+}
+.help-panel.open{ transform:translateX(0) }
+.help-panel header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px; border-bottom:1px solid var(--border); background:var(--surface-2);
+}
+.help-panel .hp-body{ padding:12px; overflow:auto; }
+.help-panel .hp-title{ margin:0 0 8px 0; font-size:18px }
+.help-panel .hp-list{ margin:0; padding-left:18px; line-height:1.5 }
+.help-close{
+  background:transparent; color:var(--text); border:1px solid color-mix(in oklab, var(--text), #fff 85%);
+  border-radius:8px; padding:6px 10px; cursor:pointer;
+}
+@media (max-width: 700px){
+  .help-fab{ bottom:12px; right:12px; }
+  .help-panel{ width:100vw }
+}
+
+</style>
+</head>
+<body>
+  <a href="#mainContent" class="ds-skip">Skip to content</a>
+  <div class="ds-topbar">
+    <div class="ds-topbar-inner">
+<div class="ds-brand"><img src="assets/drake-logo.webp" alt="Drake Lighting Logo" class="brand-logo-img"></div>
+      <nav class="ds-nav"><a href="Viewer.html" aria-label="Go to Viewer">Viewer</a>
+        <a href="ExplodedView.html" aria-label="Go to Exploded View">Exploded</a>
+        <a href="Backend.html" aria-label="Go to Admin" aria-current="page">Admin</a>
+      </nav>
+    </div>
+  </div>
+<!-- SVG sprite for UI icons -->
+  <script>
+    // Bind theme toggle after DOM is parsed
+    window.addEventListener('DOMContentLoaded', ()=>{
+      try{
+        const btn = document.getElementById('toggleTheme');
+        btn?.addEventListener('click', ()=>{
+          const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+          if(isDark){ document.documentElement.removeAttribute('data-theme'); localStorage.setItem('theme','light'); }
+          else { document.documentElement.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
+        });
+      }catch(_){ }
+    });
+  </script>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display:none">
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15.5 19l-7-7 7-7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M8.5 5l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-10 0v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6M10 10v6M14 10v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24">
+    <circle cx="9" cy="6" r="1.5" fill="currentColor"/>
+    <circle cx="15" cy="6" r="1.5" fill="currentColor"/>
+    <circle cx="9" cy="12" r="1.5" fill="currentColor"/>
+    <circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+    <circle cx="9" cy="18" r="1.5" fill="currentColor"/>
+    <circle cx="15" cy="18" r="1.5" fill="currentColor"/>
+  </symbol>
+</svg>
+<div id="mainContent" class="app ds-app">
+  <div class="topbar card ds-card" style="display:flex;align-items:center;gap:8px">
+    <div class="search">
+      <input id="searchInput" class="ds-input" type="text" placeholder="Search components by name or number...">
+      <select id="filterSelect" class="ds-select"><option value="">All sections</option></select>
+    </div>
+    <button id="openAdmin" class="ds-btn ds-ghost adminBtn" title="Open Admin">Admin</button>
+    <button id="publishBtn" class="ds-btn ds-ghost" title="Export data">Publish</button>
+    <button id="toggleTheme" class="ds-btn ds-ghost" type="button" title="Toggle theme">Toggle Theme</button>
+  </div>
+  <div class="container">
+    <div class="left card ds-card">
+      <div class="topRow" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="small">Hover on SVG to zoom & filter table</div>
+        <div class="small">SVG View</div>
+      </div>
+      <div class="svgWrap">
+        <div class="svghost small">Zoom: hover to zoom | Draw sections in Admin</div>
+        <svg id="mainSVG" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+        <div id="svgPlaceholder" style="position:absolute;color:#ddd">Upload an SVG in Admin to begin</div>
+      </div>
+      <!-- Saved Items Panel (collapsible) -->
+      <div class="card ds-card" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h4 style="margin:0">Saved Items</h4>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input id="itemsFilter" type="text" class="simple ds-input" placeholder="Filter by name..." style="width:180px">
+            <!-- Removed items sort dropdown per request -->
+            
+            <button id="itemsToggle" class="ds-btn ds-ghost" title="Collapse/Expand">Hide</button>
+            <button id="saveCurrentItemBtn" class="ds-btn">Save</button>
+            <button id="saveCurrentAsItem" class="ds-btn ds-ghost">Save Current As Item</button>
+          </div>
+        </div>
+        <div id="itemsPanelBody">
+          <div class="listWrap ds-scroll ds-scroll-mask" style="max-height:240px">
+            <table class="ds-table ds-density-compact" aria-label="Saved items" style="table-layout:auto">
+              <thead>
+                <tr>
+                  <th style="width:46%">Name</th>
+                  <th style="width:10%">Sections</th>
+                  <th style="width:22%">Updated</th>
+                  <th style="width:22%">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="itemsTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="card ds-card">
+        <h3 style="margin:0 0 8px 0">Components</h3>
+        <!-- Header controls for table columns -->
+        <div class="header-add">
+          <input id="newColName" class="col-name ds-input" type="text" placeholder="New column name (text only)">
+          <button id="addColumnBtn" class="ds-btn ds-ghost">Add Column</button>
+          <button id="resetColumns" class="ds-btn ds-ghost">Reset Columns</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+          <div class="small">Hovered section: <span id="hoveredSectionName">None</span></div>
+        </div>
+        <div class="listWrap ds-scroll ds-scroll-mask">
+          <table class="ds-table ds-density-compact" id="compTable" aria-label="Components table">
+            <thead><tr id="compTableHead"></tr></thead>
+            <tbody id="compTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <!-- Quote Preview intentionally removed as requested -->
+    </div>
+  </div>
+</div>
+<!-- ADMIN MODAL (unchanged functionality) -->
+<div id="adminModal" style="display:none">
+  <div class="modal">
+    <div class="modalCard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h3>Admin: Upload SVG, Manage Components & Sections</h3>
+        <div><button id="closeAdmin" class="ds-btn ds-ghost">Close</button></div>
+      </div>
+      <div class="cols">
+        <div class="card ds-card" style="padding:10px">
+          <label>Upload SVG file <input id="adminSvg" type="file" accept="image/svg+xml" style="margin-left:8px"></label>
+          <div id="addComponentSection" style="margin-top:12px; display:none">
+            <h4>Add Component</h4>
+            <div style="display:flex;gap:8px">
+              <input id="compNo" class="ds-input" type="text" placeholder="Comp #" style="flex:0 0 120px">
+              <input id="compName" class="ds-input" type="text" placeholder="Name" style="flex:1">
+            </div>
+            <textarea id="compDetails" class="ds-input" rows="3" style="width:100%;margin-top:8px" placeholder="Details"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="addComp" class="ds-btn">Add Component</button>
+            </div>
+          </div>
+        </div>
+        <div class="card ds-card" style="padding:10px">
+          <h4>Create Section (draw polygon)</h4>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input id="sectionName" class="ds-input" type="text" placeholder="Section name" style="flex:1">
+            <button id="startSectionDraw" class="ds-btn ds-ghost">Start Draw</button>
+            <button id="undoPoint" class="ds-btn ds-ghost">Undo Point</button>
+            <button id="finishSection" class="ds-btn ds-ghost">Finish</button>
+          </div>
+          <div class="small">After finishing, select components to assign to this section</div>
+          <div style="margin-top:8px">
+            <div id="assignComponents" style="max-height:240px;overflow:auto;border:1px solid #eee;padding:8px;border-radius:8px"></div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="saveSection" class="ds-btn">Save Section</button>
+              <button id="cancelDraw" class="ds-btn ds-ghost">Cancel</button>
+            </div>
+          </div>
+          <hr style="margin:12px 0">
+          <h4>Existing Sections</h4>
+          <div id="sectionsList" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+          <div style="margin-top:12px">
+            <small>Click a section tag to edit (drag points & change assigned components).</small>
+          </div>
+        </div>
+        <!-- Quote Recipients admin -->
+        <div class="card ds-card" style="padding:10px">
+          <h4>Quote Recipients</h4>
+          <div class="small" style="margin-bottom:6px">Addresses used by Viewer when a customer submits a quote.</div>
+          <div class="row" style="margin-bottom:8px; flex-wrap:wrap">
+            <input id="recipientInput" type="email" placeholder="name@example.com" style="flex:1; min-width:220px">
+            <button id="addRecipientBtn" class="ds-btn">Add</button>
+            <button id="clearRecipientsBtn" class="ds-btn ds-ghost">Clear All</button>
+          </div>
+          <div id="recipientsList" class="small" aria-live="polite"></div>
+                  </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+/* -------------------
+  Editable table + resize + persistence
+--------------------*/
+/* ---------- State ---------- */
+const STORAGE_KEY = 'imageQuote_v1_editable_table';
+const state = {
+  // current working set (bound to a selected item when loaded)
+  svgText: '',
+  sections: [],
+  // global/shared
+  components: [], // { id, serial, compNo, name, details, fields: {colKey: value} }
+  columns: [],     // { id, key, label, width (px), deletable }
+  // items management
+  items: [],       // [{ id, name, svgText, sections, updatedAt }]
+  currentItemId: null, // id of selected item; null means unsaved working set
+  unsaved: false,
+  // items UI state
+  itemsCollapsed: false,
+  itemsSortKey: 'updated', // 'updated' | 'name' | 'count'
+  itemsSortDir: 'desc',    // 'asc' | 'desc'
+  itemsFilter: ''
+};
+loadState();
+/* ---------- DOM refs ---------- */
+const mainSVG = document.getElementById('mainSVG');
+const filterSelect = document.getElementById('filterSelect');
+const searchInput = document.getElementById('searchInput');
+const compTable = document.getElementById('compTable');
+const compTableHead = document.getElementById('compTableHead');
+const compTableBody = document.getElementById('compTableBody');
+const openAdmin = document.getElementById('openAdmin');
+const adminModal = document.getElementById('adminModal');
+const adminSvgInput = document.getElementById('adminSvg');
+const closeAdmin = document.getElementById('closeAdmin');
+const addCompBtn = document.getElementById('addComp');
+const compNoInput = document.getElementById('compNo');
+const compNameInput = document.getElementById('compName');
+const compDetailsInput = document.getElementById('compDetails');
+const componentsList = document.getElementById('componentsList');
+const startSectionDraw = document.getElementById('startSectionDraw');
+const finishSection = document.getElementById('finishSection');
+const undoPointBtn = document.getElementById('undoPoint');
+const cancelDrawBtn = document.getElementById('cancelDraw');
+const saveSectionBtn = document.getElementById('saveSection');
+const sectionNameInput = document.getElementById('sectionName');
+const assignComponentsDiv = document.getElementById('assignComponents');
+const sectionsList = document.getElementById('sectionsList');
+const hoveredSectionName = document.getElementById('hoveredSectionName');
+const publishBtn = document.getElementById('publishBtn');
+const svgPlaceholder = document.getElementById('svgPlaceholder');
+// Recipients admin refs
+const recipientInput = document.getElementById('recipientInput');
+const addRecipientBtn = document.getElementById('addRecipientBtn');
+const clearRecipientsBtn = document.getElementById('clearRecipientsBtn');
+const recipientsList = document.getElementById('recipientsList');
+// (no explicit zoom controls in this version)
+const addColumnBtn = document.getElementById('addColumnBtn');
+const newColNameInput = document.getElementById('newColName');
+const resetColumnsBtn = document.getElementById('resetColumns');
+// Items UI
+const itemsTbody = document.getElementById('itemsTbody');
+const saveCurrentAsItemBtn = document.getElementById('saveCurrentAsItem');
+const saveCurrentItemBtn = document.getElementById('saveCurrentItemBtn');
+const itemsFilterInput = document.getElementById('itemsFilter');
+const itemsSortSelect = document.getElementById('itemsSort');
+const itemsSortDirBtn = document.getElementById('itemsSortDir');
+const itemsToggleBtn = document.getElementById('itemsToggle');
+const itemsPanelBody = document.getElementById('itemsPanelBody');
+/* ---------- Utils ---------- */
+function uid(prefix='id'){ return prefix + Math.random().toString(36).slice(2,9); }
+function saveState(){
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch(e) { console.warn('save failed', e); }
+}
+function loadState(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      // shallow merge to keep code safe against missing keys
+      if(parsed.svgText) state.svgText = parsed.svgText;
+      if(parsed.sections) state.sections = parsed.sections;
+      if(parsed.components) state.components = parsed.components;
+      if(parsed.columns) state.columns = parsed.columns;
+      if(parsed.items) state.items = parsed.items;
+      if('currentItemId' in parsed) state.currentItemId = parsed.currentItemId;
+      if('unsaved' in parsed) state.unsaved = parsed.unsaved;
+      if('itemsCollapsed' in parsed) state.itemsCollapsed = parsed.itemsCollapsed;
+      if(parsed.itemsSortKey) state.itemsSortKey = parsed.itemsSortKey;
+      if(parsed.itemsSortDir) state.itemsSortDir = parsed.itemsSortDir;
+      if(typeof parsed.itemsFilter === 'string') state.itemsFilter = parsed.itemsFilter;
+    }
+  } catch(e) { console.warn('load failed', e); }
+}
+/* ---------- Default columns if none ---------- */
+function ensureDefaultColumns(){
+  if(!state.columns || !state.columns.length){
+    state.columns = [
+      { id: uid('col_'), key: 'sr', label: 'SR #', width: 80, deletable: true },
+      { id: uid('col_'), key: 'compNo', label: 'Comp No', width: 140, deletable: true },
+      { id: uid('col_'), key: 'name', label: 'Name', width: 180, deletable: true },
+      { id: uid('col_'), key: 'details', label: 'Details', width: 220, deletable: true }
+    ];
+    // migrate existing components to have fields map for any column keys
+    state.components.forEach((c, idx)=>{
+      c.fields = c.fields || {};
+      state.columns.forEach(col => {
+        if(!(col.key in c.fields)){
+          // populate from old attributes if present
+          if(col.key === 'sr') c.fields[col.key] = c.serial || (idx+1).toString();
+          else if(col.key === 'compNo') c.fields[col.key] = c.compNo || '';
+          else if(col.key === 'name') c.fields[col.key] = c.name || '';
+          else if(col.key === 'details') c.fields[col.key] = c.details || '';
+          else c.fields[col.key] = '';
+        }
+      });
+    });
+    saveState();
+  }
+}
+/* ---------- Quote recipients (admin) ---------- */
+const RECIP_KEY = 'quoteRecipients_v1';
+function loadRecipients(){
+  try{
+    const raw = localStorage.getItem(RECIP_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    if(Array.isArray(arr)) return arr.filter(v=>typeof v==='string').map(v=>v.trim()).filter(Boolean);
+  }catch(_){ }
+  return [];
+}
+function saveRecipients(list){
+  try{ localStorage.setItem(RECIP_KEY, JSON.stringify(Array.isArray(list)?list:[])); }catch(_){ }
+}
+function isValidEmail(s){
+  const v = (s||'').trim();
+  if(!v) return false;
+  // simple but practical email check
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+function renderRecipients(){
+  const list = loadRecipients();
+  if(!recipientsList) return;
+  if(!list.length){ recipientsList.innerHTML = '<span class="small">No recipients added.</span>'; return; }
+  const frag = document.createDocumentFragment();
+  list.forEach((email, idx)=>{
+    const span = document.createElement('span');
+    span.className = 'tag';
+    span.style.display = 'inline-flex';
+    span.style.alignItems = 'center';
+    span.style.gap = '6px';
+    span.style.margin = '4px';
+    span.textContent = email + ' ';
+    const del = document.createElement('button');
+    del.type = "button"; del.className = "ghost warn"; del.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-trash" xlink:href="#i-trash"/></svg><span class="visually-hidden">Delete</span>'; del.setAttribute("aria-label","Delete"); del.title="Delete";
+    del.style.padding = '0 6px'; del.style.height = '22px'; del.style.lineHeight = '20px';
+    del.addEventListener('click', ()=>{
+      const arr = loadRecipients();
+      arr.splice(idx,1); saveRecipients(arr); renderRecipients();
+    });
+    span.appendChild(del);
+    frag.appendChild(span);
+  });
+  recipientsList.innerHTML = '';
+  recipientsList.appendChild(frag);
+}
+function wireRecipientsAdmin(){
+  if(!addRecipientBtn) return;
+  addRecipientBtn.addEventListener('click', ()=>{
+    const v = (recipientInput.value||'').trim();
+    if(!isValidEmail(v)){ alert('Please enter a valid email address.'); return; }
+    const arr = loadRecipients();
+    const key = v.toLowerCase();
+    if(arr.map(x=>x.toLowerCase()).includes(key)) { recipientInput.value=''; return; }
+    arr.push(v); saveRecipients(arr); recipientInput.value=''; renderRecipients();
+  });
+  recipientInput?.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); addRecipientBtn.click(); } });
+  clearRecipientsBtn?.addEventListener('click', ()=>{
+    if(!confirm('Clear all quote recipients?')) return;
+    saveRecipients([]); renderRecipients();
+  });
+  renderRecipients();
+}
+/* ---------- Rendering table ---------- */
+function renderTable(){
+  ensureDefaultColumns();
+  // Build headers
+  compTableHead.innerHTML = '';
+  state.columns.forEach((col, colIndex) => {
+    const th = document.createElement('th');
+    th.style.width = (col.width ? col.width + 'px' : 'auto');
+    th.dataset.colId = col.id;
+    // label: read-only span + hidden input (dblclick to edit)
+    const labelText = document.createElement('span');
+    labelText.className = 'col-label-text';
+    labelText.textContent = col.label;
+    labelText.title = 'Double-click to rename column';
+    const labelInput = document.createElement('input');
+    labelInput.className = 'col-label';
+    labelInput.value = col.label;
+    labelInput.setAttribute('aria-label','Edit column name');
+    function startEdit(){
+      labelText.style.display = 'none';
+      labelInput.style.display = 'inline-block';
+      labelInput.focus();
+      labelInput.select();
+    }
+    function commitEdit(){
+      const v = (labelInput.value||'').trim();
+      if(v && v !== col.label){ col.label = v; saveState(); }
+      renderTable();
+    }
+    function cancelEdit(){ renderTable(); }
+    th.addEventListener('dblclick', (e)=>{ if(e.target===labelText || e.target===th){ startEdit(); } });
+    labelInput.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter') commitEdit();
+      if(e.key === 'Escape') cancelEdit();
+      // Keyboard reorder: Alt+ArrowLeft/Right while editing
+      if(e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')){
+        const idx = state.columns.findIndex(cc => cc.id === col.id);
+        if(idx !== -1){ moveColumnByIndex(idx, e.key === 'ArrowLeft' ? -1 : 1); }
+        e.preventDefault(); e.stopPropagation();
+      }
+    });
+    labelInput.addEventListener('blur', commitEdit);
+    // actions (reorder, delete) & resize grip
+    const actions = document.createElement('div');
+    actions.className = 'col-actions';
+    // reorder: move left / right
+    const moveLeft = document.createElement('button');
+    moveLeft.className = 'col-move';
+    moveLeft.textContent='';
+    moveLeft.title = 'Move left';
+    moveLeft.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-chevron-left" xlink:href="#i-chevron-left"/></svg>';
+    moveLeft.disabled = (colIndex === 0);
+    moveLeft.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      moveColumnByIndex(colIndex, -1);
+    });
+    const moveRight = document.createElement('button');
+    moveRight.className = 'col-move';
+    moveRight.textContent='';
+    moveRight.title = 'Move right';
+    moveRight.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-chevron-right" xlink:href="#i-chevron-right"/></svg>';
+    moveRight.disabled = (colIndex === state.columns.length - 1);
+    moveRight.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      moveColumnByIndex(colIndex, 1);
+    });
+    // legacy move buttons disabled: using drag handle instead
+    if(col.deletable){
+      const del = document.createElement('button');
+      del.className = 'col-delete';
+      del.textContent='';
+      del.title = 'Delete column';
+      del.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-trash" xlink:href="#i-trash"/></svg>';
+      del.addEventListener('click', ()=>{
+        if(!confirm(`Delete column "${col.label}"? This will remove column data from all components.`)) return;
+        deleteColumn(col.id);
+      });
+      actions.appendChild(del);
+    } else {
+      const spacer = document.createElement('span');
+      spacer.style.width='28px';
+      actions.appendChild(spacer);
+    }
+    // resize handle with visible grip
+    const res = document.createElement('div');
+    res.className = 'col-resize';
+    res.innerHTML = '<div class="grip" aria-hidden="true"></div>';
+    makeHeaderResizable(res, col);
+    // Drag handle for reordering (left)
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'drag-handle';
+    dragHandle.setAttribute('draggable','true');
+    dragHandle.title = 'Drag to reorder';
+    dragHandle.dataset.colId = col.id;
+    dragHandle.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-grip" xlink:href="#i-grip"/></svg>';
+    th.appendChild(dragHandle);
+    th.appendChild(labelText);
+    th.appendChild(actions);
+    th.appendChild(res);
+    th.appendChild(labelInput);
+    compTableHead.appendChild(th);
+  });
+  // static actions column header
+  const thActions = document.createElement('th');
+  thActions.textContent = 'Actions';
+  thActions.style.width = '140px';
+  compTableHead.appendChild(thActions);// Drag-and-drop reorder wiring (wire once, works across renders)
+  if(!compTableHead._dndWired){
+    let dragColId = null;
+    const clearMarkers = () => Array.from(compTableHead.querySelectorAll('th')).forEach(h=>h.classList.remove('drop-left','drop-right'));
+    compTableHead.addEventListener('dragstart', (e)=>{
+      const h = e.target && e.target.closest && e.target.closest('.drag-handle');
+      if(!h) return;
+      dragColId = h.dataset.colId;
+      if(e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    });
+    compTableHead.addEventListener('dragover', (e)=>{
+      if(!dragColId) return; e.preventDefault();
+      const targetTh = e.target && e.target.closest && e.target.closest('th');
+      const headers = Array.from(compTableHead.querySelectorAll('th')).slice(0, state.columns.length);
+      if(!targetTh || headers.indexOf(targetTh) === -1) return;
+      const rect = targetTh.getBoundingClientRect();
+      const before = (e.clientX - rect.left) < rect.width/2;
+      clearMarkers(); targetTh.classList.add(before ? 'drop-left' : 'drop-right');
+    });
+    compTableHead.addEventListener('dragend', ()=>{ dragColId = null; clearMarkers(); });
+    compTableHead.addEventListener('drop', (e)=>{
+      if(!dragColId) return; e.preventDefault();
+      const targetTh = e.target && e.target.closest && e.target.closest('th');
+      const headers = Array.from(compTableHead.querySelectorAll('th')).slice(0, state.columns.length);
+      if(!targetTh) return; const idx = headers.indexOf(targetTh); if(idx === -1) return;
+      const rect = targetTh.getBoundingClientRect();
+      const before = (e.clientX - rect.left) < rect.width/2;
+      const fromIndex = state.columns.findIndex(c=>c.id===dragColId);
+      if(fromIndex === -1) return;
+      let to = idx + (before ? 0 : 1);
+      if(to > fromIndex) to--;
+      if(to !== fromIndex && to >= 0 && to <= state.columns.length){
+        const item = state.columns.splice(fromIndex,1)[0];
+        state.columns.splice(to,0,item);
+        saveState(); renderTable();
+      }
+      dragColId = null; clearMarkers();
+    });
+    compTableHead._dndWired = true;
+  }
+  // Build body rows
+  compTableBody.innerHTML = '';
+  // filter & search handled elsewhere? Keep simple: render all components
+  state.components.forEach((c, rowIndex) => {
+    c.fields = c.fields || {};
+    const tr = document.createElement('tr');
+    tr.dataset.id = c.id;
+    state.columns.forEach((col) => {
+      const td = document.createElement('td');
+      td.style.width = (col.width ? col.width + 'px' : 'auto');
+      const cellInput = document.createElement('input');
+      cellInput.className = 'cell-input';
+      // cell value from fields or fallback mapping for default columns
+      let value = '';
+      if(col.key in c.fields) value = c.fields[col.key];
+      else {
+        // fallback to old properties:
+        if(col.key === 'sr') value = c.serial || (rowIndex+1);
+        else if(col.key === 'compNo') value = c.compNo || '';
+        else if(col.key === 'name') value = c.name || '';
+        else if(col.key === 'details') value = c.details || '';
+        else value = '';
+      }
+      cellInput.value = value;
+      // save on input
+      cellInput.addEventListener('input', (e) => {
+        c.fields[col.key] = e.target.value;
+        // also update legacy props for compatibility
+        if(col.key === 'sr') c.serial = e.target.value;
+        if(col.key === 'compNo') c.compNo = e.target.value;
+        if(col.key === 'name') c.name = e.target.value;
+        if(col.key === 'details') c.details = e.target.value;
+        saveState();
+      });
+      td.appendChild(cellInput);
+      tr.appendChild(td);
+    });
+    // actions cell with Add and Delete buttons
+    const tdActions = document.createElement('td');
+    // Add (duplicate) button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'ghost';
+    addBtn.textContent = 'Add';
+    addBtn.title = 'Add a new row using these values';
+    addBtn.style.marginRight = '6px';
+    addBtn.addEventListener('click', ()=>{
+      const newComp = { id: uid('c_'), serial: state.components.length + 1, compNo: '', name: '', details: '', fields: {}, sections: [] };
+      // copy fields
+      state.columns.forEach(col => {
+        const val = (c.fields && (col.key in c.fields)) ? c.fields[col.key] : '';
+        newComp.fields[col.key] = (col.key === 'sr') ? String(newComp.serial) : String(val ?? '');
+        if(col.key === 'compNo') newComp.compNo = String(val ?? '');
+        if(col.key === 'name') newComp.name = String(val ?? '');
+        if(col.key === 'details') newComp.details = String(val ?? '');
+      });
+      state.components.push(newComp);
+      saveState(); renderAdminComponents(); renderTable();
+    });
+    tdActions.appendChild(addBtn);
+    // Delete button
+    const delBtn = document.createElement('button');
+    delBtn.className = 'ghost warn';
+    delBtn.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-trash" xlink:href="#i-trash"/></svg><span class="visually-hidden">Delete</span>';
+    delBtn.title = 'Delete this row';
+    delBtn.addEventListener('click', ()=>{
+      if(!confirm('Delete component?')) return;
+      state.components = state.components.filter(x=>x.id !== c.id);
+      saveState(); renderAdminComponents(); renderTable();
+    });
+    tdActions.appendChild(delBtn);
+    tr.appendChild(tdActions);
+    compTableBody.appendChild(tr);
+  });
+  // Inline "new entry" row at bottom
+  const trNew = document.createElement('tr');
+  trNew.dataset.id = 'new';
+  const newInputs = {};
+  state.columns.forEach(col => {
+    const td = document.createElement('td');
+    td.style.width = (col.width ? col.width + 'px' : 'auto');
+    const input = document.createElement('input');
+    input.className = 'cell-input';
+    input.placeholder = col.label;
+    newInputs[col.key] = input;
+    td.appendChild(input);
+    trNew.appendChild(td);
+  });
+  const tdNewActions = document.createElement('td');
+  const addNewBtn = document.createElement('button');
+  addNewBtn.textContent = 'Add';
+  addNewBtn.addEventListener('click', ()=>{
+    const newComp = { id: uid('c_'), serial: state.components.length + 1, compNo: '', name: '', details: '', fields: {}, sections: [] };
+    state.columns.forEach(col => {
+      let v = (newInputs[col.key]?.value ?? '').toString();
+      if(col.key === 'sr') v = String(newComp.serial);
+      newComp.fields[col.key] = v;
+      if(col.key === 'compNo') newComp.compNo = v;
+      if(col.key === 'name') newComp.name = v;
+      if(col.key === 'details') newComp.details = v;
+    });
+    state.components.push(newComp);
+    saveState(); renderAdminComponents(); renderTable();
+  });
+  tdNewActions.appendChild(addNewBtn);
+  trNew.appendChild(tdNewActions);
+  compTableBody.appendChild(trNew);
+}
+/* ---------- Column operations ---------- */
+function addColumn(label){
+  if(!label || !label.trim()) { try{ (window.AppUtils||{}).showToast?.('Enter a column name','warn'); }catch(_){} return; }
+  const key = 'col_' + uid();
+  const col = { id: uid('col_'), key, label: label.trim(), width: 160, deletable: true };
+  state.columns.push(col);
+  // initialize existing components' fields
+  state.components.forEach(c => { c.fields = c.fields || {}; c.fields[key] = ''; });
+  saveState(); renderTable();
+}
+function deleteColumn(colId){
+  const idx = state.columns.findIndex(c=>c.id===colId);
+  if(idx === -1) return;
+  const col = state.columns[idx];
+  const key = col.key;
+  // remove key from each component's fields
+  state.components.forEach(c => { if(c.fields && key in c.fields) delete c.fields[key]; });
+  // remove column
+  state.columns.splice(idx,1);
+  saveState(); renderTable();
+}
+// move a column left/right by delta
+function moveColumnByIndex(fromIndex, delta){
+  const toIndex = fromIndex + delta;
+  if(toIndex < 0 || toIndex >= state.columns.length) return;
+  const item = state.columns.splice(fromIndex,1)[0];
+  state.columns.splice(toIndex,0,item);
+  saveState();
+  renderTable();
+}
+function resetColumnsToDefault(){
+  if(!confirm('Reset columns to default? This will remove custom columns and their data.')) return;
+  state.columns = [];
+  // remove all components' fields (we'll repopulate defaults on render)
+  state.components.forEach(c => { c.fields = {}; });
+  ensureDefaultColumns();
+  saveState(); renderTable();
+}
+/* ---------- Resizing ---------- */
+function makeHeaderResizable(handleEl, col){
+  let startX = 0;
+  let startWidth = 0;
+  let dragging = false;
+  handleEl.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    startX = e.clientX;
+    startWidth = col.width || 120;
+    dragging = true;
+    document.body.style.cursor = 'col-resize';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if(!dragging) return;
+    const dx = e.clientX - startX;
+    const newW = Math.max(40, Math.round(startWidth + dx));
+    col.width = newW;
+    // apply new width to DOM quickly
+    const th = Array.from(compTableHead.children).find(t => t.dataset.colId === col.id);
+    if(th) th.style.width = newW + 'px';
+    // apply to body cells
+    const idx = state.columns.findIndex(c=>c.id===col.id);
+    if(idx !== -1){
+      Array.from(compTableBody.querySelectorAll('tr')).forEach(tr => {
+        const td = tr.children[idx];
+        if(td) td.style.width = newW + 'px';
+      });
+    }
+  });
+  window.addEventListener('mouseup', () => {
+    if(!dragging) return;
+    dragging = false;
+    document.body.style.cursor = '';
+    saveState();
+    // re-render to ensure consistency
+    renderTable();
+  });
+}
+/* ---------- Components management (unchanged behavior; components now store fields) ---------- */
+addCompBtn.addEventListener('click', ()=>{
+  const compNo = compNoInput.value.trim();
+  const name = compNameInput.value.trim();
+  const details = compDetailsInput.value.trim();
+  if(!compNo && !name) { try{ (window.AppUtils||{}).showToast?.('Enter comp # or name','warn'); }catch(_){} return; }
+  const obj = { id: uid('c_'), serial: state.components.length+1, compNo, name, details, fields: {}, sections: [] };
+  // initialize fields for current columns
+  ensureDefaultColumns();
+  state.columns.forEach(col => {
+    if(col.key === 'sr') obj.fields[col.key] = obj.serial.toString();
+    else if(col.key === 'compNo') obj.fields[col.key] = compNo;
+    else if(col.key === 'name') obj.fields[col.key] = name;
+    else if(col.key === 'details') obj.fields[col.key] = details;
+    else obj.fields[col.key] = '';
+  });
+  state.components.push(obj);
+  compNoInput.value=''; compNameInput.value=''; compDetailsInput.value='';
+  saveState(); renderAdminComponents(); renderTable();
+});
+/* ---------- Admin components list rendering ---------- */
+function renderAdminComponents(){
+  if(!componentsList) return; // admin list removed; nothing to render
+  componentsList.innerHTML = '';
+  state.components.forEach((c, idx)=>{
+    const d = document.createElement('div'); d.style.display='flex'; d.style.justifyContent='space-between'; d.style.alignItems='center'; d.style.padding='6px 0';
+    d.innerHTML = `<div><strong>${escapeHtml(c.compNo||'')}</strong> â€” ${escapeHtml(c.name||'')}<div class="small">${escapeHtml(c.details||'')}</div></div>`;
+    const actions = document.createElement('div');
+    const editBtn = document.createElement('button'); editBtn.className='ghost'; editBtn.textContent='Edit';
+    editBtn.addEventListener('click', ()=> editComponent(c.id));
+    const delBtn = document.createElement('button'); delBtn.className='ghost warn'; delBtn.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-trash" xlink:href="#i-trash"/></svg><span class="visually-hidden">Delete</span>';
+    delBtn.addEventListener('click', ()=> {
+      if(!confirm('Delete component?')) return;
+      state.components = state.components.filter(x=>x.id!==c.id);
+      saveState(); renderAdminComponents(); renderTable();
+    });
+    actions.appendChild(editBtn); actions.appendChild(delBtn);
+    d.appendChild(actions); componentsList.appendChild(d);
+  });
+  try {
+    // Clean up any garbled separators in names
+    componentsList.querySelectorAll('div').forEach(node => {
+      if(node && node.innerHTML) node.innerHTML = node.innerHTML.replace('ï¿½?"', 'â€”');
+    });
+  } catch(_){}
+}
+function editComponent(id){
+  const c = state.components.find(x=>x.id===id);
+  if(!c) { try{ (window.AppUtils||{}).showToast?.('Not found','warn'); }catch(_){} return; }
+  const compNo = prompt('Component number:', c.compNo||''); if(compNo === null) return;
+  const name = prompt('Component name:', c.name||''); if(name===null) return;
+  const details = prompt('Component details:', c.details||''); if(details===null) return;
+  c.compNo = compNo.trim(); c.name = name.trim(); c.details = details.trim();
+  // sync into fields if present
+  state.columns.forEach(col => {
+    if(col.key in c.fields){
+      if(col.key === 'compNo') c.fields[col.key] = c.compNo;
+      if(col.key === 'name') c.fields[col.key] = c.name;
+      if(col.key === 'details') c.fields[col.key] = c.details;
+    }
+  });
+  saveState(); renderAdminComponents(); renderTable();
+}
+/* ---------- Helper ---------- */
+function escapeHtml(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* ---------- Items: helpers & UI ---------- */
+function getCurrentItem(){
+  return state.items.find(it => it.id === state.currentItemId) || null;
+}
+function persistCurrentItemIfBound(){
+  const it = getCurrentItem();
+  if(!it) { state.unsaved = true; saveState(); return; }
+  it.svgText = state.svgText;
+  it.sections = state.sections.slice();
+  it.updatedAt = new Date().toISOString();
+  state.unsaved = false;
+  saveState();
+  renderItemsTable();
+}
+function saveCurrentAsItem(name){
+  const nm = (name || '').trim() || ('Item ' + (state.items.length + 1));
+  const existing = getCurrentItem();
+  if(existing){
+    existing.name = nm;
+    existing.svgText = state.svgText;
+    existing.sections = state.sections.slice();
+    existing.updatedAt = new Date().toISOString();
+    state.unsaved = false;
+  } else {
+    const id = uid('item_');
+    state.items.push({ id, name: nm, svgText: state.svgText, sections: state.sections.slice(), updatedAt: new Date().toISOString() });
+    state.currentItemId = id; state.unsaved = false;
+  }
+  saveState();
+  renderItemsTable();
+  try{ (window.AppUtils||{}).showToast?.('Saved to items as "' + nm + '".'); }catch(_){}
+}
+function loadItem(itemId){
+  if(state.unsaved && (state.svgText || (state.sections && state.sections.length))){
+    const ok = confirm('You have unsaved edits. Continue and discard them?');
+    if(!ok) return;
+  }
+  const it = state.items.find(x=>x.id===itemId);
+  if(!it) { try{ (window.AppUtils||{}).showToast?.('Item not found','warn'); }catch(_){} return; }
+  state.currentItemId = it.id;
+  state.svgText = it.svgText || '';
+  state.sections = Array.isArray(it.sections) ? it.sections.slice() : [];
+  state.unsaved = false;
+  saveState();
+  renderSVG(); refreshSectionsUI(); renderItemsTable();
+}
+function deleteItem(itemId){
+  const it = state.items.find(x=>x.id===itemId);
+  if(!it) return;
+  if(!confirm('Delete item "' + it.name + '"?')) return;
+  const idx = state.items.findIndex(x=>x.id===itemId);
+  if(idx !== -1) state.items.splice(idx,1);
+  if(state.currentItemId === itemId){
+    state.currentItemId = null; // keep current canvas as-is, marked unsaved
+    state.unsaved = true;
+  }
+  saveState(); renderItemsTable();
+}
+function duplicateItem(itemId){
+  const it = state.items.find(x=>x.id===itemId);
+  if(!it) return;
+  const id = uid('item_');
+  const name = 'Copy of ' + it.name;
+  state.items.push({ id, name, svgText: it.svgText, sections: (it.sections||[]).slice(), updatedAt: new Date().toISOString() });
+  saveState(); renderItemsTable();
+}
+function renderItemsTable(){
+  if(!itemsTbody) return;
+  itemsTbody.innerHTML = '';
+  // derive filtered + sorted list
+  const q = (state.itemsFilter || '').toLowerCase();
+  let arr = state.items.slice();
+  if(q){ arr = arr.filter(x => (x.name||'').toLowerCase().includes(q)); }
+  const dir = state.itemsSortDir === 'asc' ? 1 : -1;
+  const key = state.itemsSortKey || 'updated';
+  arr.sort((a,b)=>{
+    if(key === 'name'){
+      return dir * ( (a.name||'').localeCompare(b.name||'') );
+    }
+    if(key === 'count'){
+      const ca = (a.sections?.length||0), cb=(b.sections?.length||0);
+      return dir * (ca - cb);
+    }
+    // updated
+    const ta = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+    const tb = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+    return dir * (ta - tb);
+  });
+  arr.forEach(it => {
+    const tr = document.createElement('tr');
+    if(state.currentItemId === it.id){ tr.style.background = '#f5f9ff'; }
+    const tdName = document.createElement('td');
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = it.name || '(unnamed)';
+    nameSpan.title = 'Click to rename';
+    nameSpan.style.cursor = 'text';
+    nameSpan.addEventListener('click', ()=> startInlineRenameItem(it.id, tdName));
+    tdName.appendChild(nameSpan);
+    const tdCount = document.createElement('td'); tdCount.textContent = (it.sections?.length||0).toString();
+    const tdUpdated = document.createElement('td'); tdUpdated.textContent = it.updatedAt ? new Date(it.updatedAt).toLocaleString() : '';
+    const tdAct = document.createElement('td'); tdAct.className='cell-actions'; tdAct.style.display='flex'; tdAct.style.alignItems='center'; tdAct.style.gap='6px'; tdAct.style.overflow='visible';
+    // Actions: Load, Duplicate, Delete
+    const btnLoad = document.createElement('button'); btnLoad.className='ghost'; btnLoad.textContent='Load'; btnLoad.addEventListener('click', ()=> loadItem(it.id));
+    const btnDup = document.createElement('button'); btnDup.className='ghost'; btnDup.textContent='Copy'; btnDup.style.marginLeft='6px'; btnDup.addEventListener('click', ()=> duplicateItem(it.id));
+    const btnDel = document.createElement('button'); btnDel.className='ghost warn'; btnDel.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-trash" xlink:href="#i-trash"/></svg>'; btnDel.setAttribute('aria-label','Delete'); btnDel.title='Delete'; btnDel.style.marginLeft='6px'; btnDel.addEventListener('click', ()=> deleteItem(it.id));
+    tdAct.appendChild(btnLoad); tdAct.appendChild(btnDup); tdAct.appendChild(btnDel);
+    tr.appendChild(tdName); tr.appendChild(tdCount); tr.appendChild(tdUpdated); tr.appendChild(tdAct);
+    itemsTbody.appendChild(tr);
+  });
+}
+function syncItemsPanelUI(){
+  try{
+    if(itemsFilterInput){ itemsFilterInput.value = state.itemsFilter || ''; }
+    if(itemsSortSelect){ itemsSortSelect.value = state.itemsSortKey || 'updated'; }
+    if(itemsSortDirBtn){ itemsSortDirBtn.textContent = (state.itemsSortDir==='asc') ? 'Asc' : 'Desc'; }
+    if(itemsPanelBody){ itemsPanelBody.style.display = state.itemsCollapsed ? 'none' : ''; }
+    if(itemsToggleBtn){ itemsToggleBtn.textContent = state.itemsCollapsed ? 'Show' : 'Hide'; }
+  }catch(_){}
+}
+function startInlineRenameItem(itemId, tdCell){
+  const it = state.items.find(x=>x.id===itemId); if(!it) return;
+  const current = it.name || '';
+  tdCell.innerHTML = '';
+  const input = document.createElement('input');
+  input.type = 'text'; input.value = current; input.className='cell-input';
+  input.style.background = '#fff'; input.style.border = '1px solid #ddd'; input.style.borderRadius='6px';
+  tdCell.appendChild(input); input.focus(); input.select();
+  const commit = (val)=>{
+    const v = (val||'').trim(); if(v){ it.name = v; it.updatedAt = new Date().toISOString(); saveState(); }
+    renderItemsTable();
+  };
+  const cancel = ()=>{ renderItemsTable(); };
+  input.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ commit(input.value); }
+    if(e.key === 'Escape'){ cancel(); }
+  });
+  input.addEventListener('blur', ()=> commit(input.value));
+}
+/* ---------- SVG & sections code kept mostly unchanged (render minimal overlays) ---------- */
+function renderSVG(){
+  mainSVG.innerHTML = '';
+  if(!state.svgText){
+    if(svgPlaceholder) svgPlaceholder.style.display = 'block';
+    return;
+  }
+  try{
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(state.svgText, 'image/svg+xml');
+    const svgNode = doc.documentElement;
+    const vb = svgNode.getAttribute('viewBox');
+    if(vb) mainSVG.setAttribute('viewBox', vb);
+    // Sanitize: remove scripts, inline event handlers, and javascript: URLs
+    try{ if(window.AppUtils) window.AppUtils.sanitizeSvgElement(svgNode); }catch(_){ }
+    Array.from(svgNode.childNodes).forEach(n=>{
+      if(n.nodeName.toLowerCase() === 'script') return;
+      mainSVG.appendChild(document.importNode(n,true));
+    });
+  }catch(e){ console.warn('SVG parse error', e); }
+  drawSectionOverlays();
+  if(svgPlaceholder) svgPlaceholder.style.display = 'none';
+}
+function drawSectionOverlays(){
+  Array.from(mainSVG.querySelectorAll('.section-overlay, .section-label')).forEach(n=>n.remove());
+  state.sections.forEach((s)=>{
+    if(!s.points || s.points.length < 3) return;
+    const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    poly.setAttribute('points', s.points.map(p=>p.x+','+p.y).join(' '));
+    poly.classList.add('section-overlay');
+    mainSVG.appendChild(poly);
+    const c = polygonCentroid(s.points);
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.classList.add('section-label');
+    const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x', c.x); txt.setAttribute('y', c.y);
+    txt.setAttribute('text-anchor','middle'); txt.setAttribute('alignment-baseline','middle');
+    txt.setAttribute('style','font-size:13px;pointer-events:none;fill:#0b79f7;font-weight:700');
+    txt.textContent = s.name;
+    g.appendChild(txt);
+    mainSVG.appendChild(g);
+  });
+}
+function polygonCentroid(points){
+  let x=0,y=0,a=0;
+  for(let i=0,j=points.length-1;i<points.length;j=i++){
+    const p1=points[i],p2=points[j];
+    const f = p1.x*p2.y - p2.x*p1.y;
+    a += f; x += (p1.x + p2.x) * f; y += (p1.y + p2.y) * f;
+  }
+  a = a / 2;
+  if(a === 0) return points[0] || {x:0,y:0};
+  x = x / (6*a); y = y / (6*a);
+  return {x,y};
+}
+/* ---------- Section drawing (Admin) â€” unchanged except storing fields unaffected ---------- */
+let drawingMode = false;
+let drawPoints = [];
+let tempPolyEl = null;
+let tempPointsGroup = null;
+function onSvgMouseMove(evt){
+  if(!drawingMode || !tempPolyEl) return;
+  const p = svgPointFromClient(evt.clientX, evt.clientY);
+  const pts = (drawPoints.length ? drawPoints.concat([p]) : []).map(pp=>pp.x+','+pp.y).join(' ');
+  tempPolyEl.setAttribute('points', pts);
+}
+function onSvgMouseLeave(){
+  if(!drawingMode || !tempPolyEl) return;
+  tempPolyEl.setAttribute('points', drawPoints.map(pp=>pp.x+','+pp.y).join(' '));
+}
+startSectionDraw.addEventListener('click', ()=> {
+  if(!state.svgText){ try{ (window.AppUtils||{}).showToast?.('Upload an SVG first in Admin','warn'); }catch(_){} return; }
+  drawingMode = true; drawPoints = [];
+  tempPolyEl = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  tempPolyEl.setAttribute('fill','rgba(11,121,247,0.08)');
+  tempPolyEl.setAttribute('stroke','rgba(11,121,247,0.6)');
+  tempPolyEl.setAttribute('stroke-width','2');
+  tempPolyEl.setAttribute('stroke-linejoin','round');
+  tempPolyEl.setAttribute('stroke-linecap','round');
+  tempPolyEl.classList.add('temp-poly');
+  mainSVG.appendChild(tempPolyEl);
+  // helper points group
+  tempPointsGroup = document.createElementNS('http://www.w3.org/2000/svg','g');
+  tempPointsGroup.setAttribute('data-role','temp-points');
+  mainSVG.appendChild(tempPointsGroup);
+  document.getElementById('undoPoint').disabled = false;
+  try{ (window.AppUtils||{}).showToast?.('Drawing mode: Click to add polygon points. Use Undo, then Finish.'); }catch(_){}
+  mainSVG.addEventListener('click', onSvgClickAddPoint);
+  mainSVG.addEventListener('mousemove', onSvgMouseMove);
+  mainSVG.addEventListener('mouseleave', onSvgMouseLeave);
+});
+function onSvgClickAddPoint(evt){
+  if(!drawingMode) return;
+  const p = svgPointFromClient(evt.clientX, evt.clientY);
+  drawPoints.push(p);
+  if(tempPointsGroup){
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', String(p.x));
+    c.setAttribute('cy', String(p.y));
+    c.setAttribute('r', '3');
+    c.setAttribute('class','helper-point');
+    tempPointsGroup.appendChild(c);
+  }
+  tempPolyEl.setAttribute('points', drawPoints.map(pp=>pp.x+','+pp.y).join(' '));
+}
+undoPointBtn.addEventListener('click', ()=>{
+  if(!drawingMode) return;
+  drawPoints.pop();
+  if(tempPointsGroup && tempPointsGroup.lastChild){ tempPointsGroup.removeChild(tempPointsGroup.lastChild); }
+  if(drawPoints.length === 0){
+    if(tempPolyEl) tempPolyEl.setAttribute('points','');
+    return;
+  }
+  tempPolyEl.setAttribute('points', drawPoints.map(pp=>pp.x+','+pp.y).join(' '));
+});
+finishSection.addEventListener('click', ()=>{
+  if(!drawingMode) return;
+  if(drawPoints.length < 3) { try{ (window.AppUtils||{}).showToast?.('Need at least 3 points','warn'); }catch(_){} return; }
+  const name = (sectionNameInput.value || '').trim() || prompt('Section name:') || ('Section-'+(state.sections.length+1));
+  const selectedIds = Array.from(assignComponentsDiv.querySelectorAll('input[type=checkbox]'))
+    .filter(cb=>cb.checked).map(cb=>cb.dataset.compid);
+  const s = { id: uid('s_'), name, points: drawPoints.slice(), assigned: selectedIds };
+  // store to sections
+  state.sections.push(s);
+  drawingMode = false; drawPoints = [];
+  if(tempPolyEl){ tempPolyEl.remove(); tempPolyEl = null; }
+  if(tempPointsGroup){ tempPointsGroup.remove(); tempPointsGroup = null; }
+  mainSVG.removeEventListener('click', onSvgClickAddPoint);
+  mainSVG.removeEventListener('mousemove', onSvgMouseMove);
+  mainSVG.removeEventListener('mouseleave', onSvgMouseLeave);
+  sectionNameInput.value = '';
+  document.getElementById('undoPoint').disabled = true;
+  saveState(); persistCurrentItemIfBound(); drawSectionOverlays(); renderAdminComponents(); refreshSectionsUI(); renderTable();
+});
+cancelDrawBtn.addEventListener('click', ()=>{
+  drawingMode = false; drawPoints = [];
+  if(tempPolyEl){ tempPolyEl.remove(); tempPolyEl = null; }
+  if(tempPointsGroup){ tempPointsGroup.remove(); tempPointsGroup = null; }
+  mainSVG.removeEventListener('click', onSvgClickAddPoint);
+  mainSVG.removeEventListener('mousemove', onSvgMouseMove);
+  mainSVG.removeEventListener('mouseleave', onSvgMouseLeave);
+  document.getElementById('undoPoint').disabled = true;
+});
+// Finish polygon on Enter key
+document.addEventListener('keydown', (e)=>{
+  if(drawingMode && e.key === 'Enter'){
+    e.preventDefault();
+    try{ finishSection.click(); }catch(_){ }
+  }
+});
+/* ---------- Save/load svg ---------- */
+adminSvgInput.addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  // Optionally save current as item before switching
+  if(state.svgText || (state.sections && state.sections.length)){
+    const wantSave = confirm('Save current image and sections as an item before loading new SVG?');
+    if(wantSave){
+      const suggested = (getCurrentItem()?.name) || ('Item ' + (state.items.length + 1));
+      const nm = prompt('Name for current item:', suggested);
+      if(nm !== null){ saveCurrentAsItem(nm.trim() || suggested); }
+    }
+  }
+  const reader = new FileReader();
+  reader.onload = ()=> {
+    const text = reader.result;
+    state.svgText = text;
+    state.sections = [];
+    state.currentItemId = null; // start as unsaved working set
+    state.unsaved = true;
+    // Prompt to save the uploaded file as a new item
+    const base = (f.name || 'New SVG').replace(/\.svg$/i,'');
+    const nm = prompt('Save uploaded SVG as new item. Name:', base);
+    if(nm !== null){
+      const id = uid('item_');
+      state.items.push({ id, name: (nm.trim()||base), svgText: state.svgText, sections: state.sections.slice(), updatedAt: new Date().toISOString() });
+      state.currentItemId = id; state.unsaved = false;
+    }
+    saveState(); renderSVG(); refreshSectionsUI(); renderItemsTable();
+  };
+  reader.readAsText(f);
+});
+/* ---------- Sections UI & edit (keeps behavior) ---------- */
+function refreshSectionsUI(){
+  sectionsList.innerHTML = '';
+  state.sections.forEach(s=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'tag';
+    wrap.style.display = 'flex';
+    wrap.style.alignItems = 'center';
+    wrap.style.gap = '6px';
+    wrap.style.padding = '6px 10px';
+    wrap.style.borderRadius = '8px';
+    wrap.style.background = '#f2f7ff';
+    wrap.style.color = '#085ea8';
+    const nameBtn = document.createElement('button');
+    nameBtn.textContent = s.name;
+    nameBtn.className = 'ghost';
+    nameBtn.style.border = 'none';
+    nameBtn.style.background = 'transparent';
+    nameBtn.style.color = '#085ea8';
+    nameBtn.style.cursor = 'pointer';
+    nameBtn.title = 'Click to edit section';
+    nameBtn.addEventListener('click', ()=> editSection(s.id));
+    const delBtn = document.createElement('button');
+    delBtn.textContent = 'âœ•';
+    delBtn.className = 'ghost warn';
+    delBtn.textContent = 'ðŸ—‘';
+    delBtn.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-trash" xlink:href="#i-trash"/></svg>';
+    delBtn.style.border = 'none';
+    delBtn.style.background = 'transparent';
+    delBtn.style.color = '#e65f5f';
+    delBtn.style.cursor = 'pointer';
+    delBtn.title = 'Delete section';
+    delBtn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if(!confirm(`Delete section "${s.name}"?`)) return;
+      deleteSection(s.id);
+    });
+    wrap.appendChild(nameBtn);
+    wrap.appendChild(delBtn);
+    sectionsList.appendChild(wrap);
+  });
+  filterSelect.innerHTML =
+    '<option value="">All sections</option>' +
+    state.sections.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+}
+function deleteSection(sectionId){
+  const idx = state.sections.findIndex(s=>s.id === sectionId);
+  if(idx === -1) { try{ (window.AppUtils||{}).showToast?.('Section not found','warn'); }catch(_){} return; }
+  state.sections.splice(idx, 1);
+  state.components.forEach(c=>{
+    c.sections = (c.sections || []).filter(id => id !== sectionId);
+  });
+  saveState();
+  persistCurrentItemIfBound();
+  drawSectionOverlays();
+  refreshSectionsUI();
+  renderTable();
+  try{ (window.AppUtils||{}).showToast?.('Section deleted.'); }catch(_){}
+}
+let editingSectionId = null;
+function editSection(sectionId){
+  const s = state.sections.find(x=>x.id===sectionId);
+  if(!s) { try{ (window.AppUtils||{}).showToast?.('Section missing','warn'); }catch(_){} return; }
+  editingSectionId = sectionId;
+  Array.from(mainSVG.querySelectorAll('.draggable-point, .edit-temp-poly')).forEach(n=>n.remove());
+  const polyEdit = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  polyEdit.setAttribute('points', s.points.map(p=>p.x+','+p.y).join(' '));
+  polyEdit.setAttribute('fill','rgba(255,200,200,0.06)');
+  polyEdit.setAttribute('stroke','rgba(255,0,0,0.6)');
+  polyEdit.setAttribute('stroke-width','2');
+  polyEdit.classList.add('edit-temp-poly');
+  mainSVG.appendChild(polyEdit);
+  s.points.forEach((p, i)=>{
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('r', 7);
+    c.classList.add('draggable-point');
+    mainSVG.appendChild(c);
+    makeSvgDraggable(c, (nx,ny)=>{
+      s.points[i] = {x:nx,y:ny};
+      polyEdit.setAttribute('points', s.points.map(pp=>pp.x+','+pp.y).join(' '));
+      drawSectionOverlays();
+    });
+  });
+  assignComponentsDiv.innerHTML = '';
+  state.components.forEach(c=>{
+    const lbl = document.createElement('label'); lbl.style.display='block';
+    const checked = (c.sections||[]).includes(s.id) ? 'checked' : '';
+    lbl.innerHTML = `<input type="checkbox" data-compid="${c.id}" ${checked}/> ${escapeHtml(c.compNo||'')} - ${escapeHtml(c.name||'')}`;
+    assignComponentsDiv.appendChild(lbl);
+  });
+  saveSectionBtn.onclick = ()=>{
+    const selected = Array.from(assignComponentsDiv.querySelectorAll('input[type=checkbox]')).filter(cb=>cb.checked).map(cb=>cb.dataset.compid);
+    state.components.forEach(c=>{
+      c.sections = c.sections || [];
+      if(selected.includes(c.id) && !c.sections.includes(s.id)) c.sections.push(s.id);
+      if(!selected.includes(c.id) && c.sections.includes(s.id)) c.sections = c.sections.filter(x=>x!==s.id);
+    });
+    editingSectionId = null;
+    Array.from(mainSVG.querySelectorAll('.draggable-point, .edit-temp-poly')).forEach(n=>n.remove());
+    saveState(); persistCurrentItemIfBound(); drawSectionOverlays(); renderAdminComponents(); refreshSectionsUI(); renderTable();
+    try{ (window.AppUtils||{}).showToast?.('Section saved.'); }catch(_){}
+  };
+}
+/* ---------- draggable helper for svg circle ---------- */
+function makeSvgDraggable(circleEl, onMove){
+  let dragging=false;
+  circleEl.addEventListener('mousedown', (e)=>{ e.stopPropagation(); dragging=true; });
+  document.addEventListener('mouseup', ()=> dragging=false);
+  document.addEventListener('mousemove', (evt)=>{
+    if(!dragging) return;
+    const pt = svgPointFromClient(evt.clientX, evt.clientY);
+    circleEl.setAttribute('cx', pt.x); circleEl.setAttribute('cy', pt.y);
+    onMove(pt.x, pt.y);
+  });
+}
+/* ---------- Hover zoom & detection ---------- */
+let svgScale = 1.6;
+mainSVG.addEventListener('mousemove', (e)=>{
+  if(!state.svgText) return;
+  const rect = mainSVG.getBoundingClientRect();
+  const px = clamp((e.clientX - rect.left)/rect.width, 0, 1);
+  const py = clamp((e.clientY - rect.top)/rect.height, 0, 1);
+  mainSVG.style.transformOrigin = (px*100) + '% ' + (py*100) + '%';
+  mainSVG.style.transform = `scale(${svgScale})`;
+  const pt = svgPointFromClient(e.clientX, e.clientY);
+  let hovered = null;
+  for(const s of state.sections){
+    if(pointInPoly(pt, s.points)) { hovered = s; break; }
+  }
+  if(hovered){
+    hoveredSectionName.textContent = hovered.name;
+    filterSelect.value = hovered.id;
+    // Trigger existing filter logic without altering other utilities
+    filterSelect.dispatchEvent(new Event('change'));
+  } else {
+    hoveredSectionName.textContent = 'None';
+    filterSelect.value = '';
+    filterSelect.dispatchEvent(new Event('change'));
+  }
+});
+mainSVG.addEventListener('mouseleave', ()=>{
+  mainSVG.style.transform = 'none';
+  hoveredSectionName.textContent = 'None';
+  filterSelect.value = '';
+  filterSelect.dispatchEvent(new Event('change'));
+});
+/* ---------- Geometry helpers ---------- */
+function svgPointFromClient(clientX, clientY){
+  const pt = mainSVG.createSVGPoint();
+  pt.x = clientX; pt.y = clientY;
+  const inv = mainSVG.getScreenCTM().inverse();
+  const loc = pt.matrixTransform(inv);
+  return {x: loc.x, y: loc.y};
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function pointInPoly(pt, vs){
+  if(!vs) return false;
+  const x=pt.x,y=pt.y; let inside=false;
+  for(let i=0,j=vs.length-1;i<vs.length;j=i++){
+    const xi=vs[i].x, yi=vs[i].y, xj=vs[j].x, yj=vs[j].y;
+    const intersect = ((yi>y)!=(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi);
+    if(intersect) inside = !inside;
+  }
+  return inside;
+}
+/* ---------- Publish / Export ---------- */
+if(publishBtn){
+  publishBtn.addEventListener('click', ()=>{
+    const exportedAt = new Date().toISOString();
+    // Build entries for ALL saved items using the current columns and components
+    const entries = (state.items || []).map(it => ({
+      id: it.id || uid('item_'),
+      name: it.name || 'Item',
+      columns: state.columns,
+      components: state.components, // components are global/current across items
+      sections: Array.isArray(it.sections) ? it.sections : [],
+      svgText: it.svgText || '',
+      exportedAt
+    }));
+    // If there are no saved items but there is a working set, export that as one
+    if(!entries.length && (state.svgText || (state.sections && state.sections.length))){
+      entries.push({
+        id: uid('item_'),
+        name: 'Working Set',
+        columns: state.columns,
+        components: state.components,
+        sections: state.sections,
+        svgText: state.svgText,
+        exportedAt
+      });
+    }
+    // 1) Export all to Viewer via localStorage buffer (replace buffer to avoid duplicates)
+    try {
+      const VIEWER_KEY = 'imageViewer_imports_v1';
+      localStorage.setItem(VIEWER_KEY, JSON.stringify(entries));
+      try { window.open('Viewer.html', '_blank'); } catch(_){}
+      try { (window.AppUtils||{}).showToast?.(`Exported ${entries.length} item(s) to Viewer. Opening Viewer.html...`); } catch(_){ }
+    } catch(e) {
+      console.warn('Viewer export failed', e);
+    }
+    // 2) Also provide file download as a fallback (package of all items)
+    try {
+      const pkg = { exportedAt, columns: state.columns, items: entries };
+      const filename = 'components-export-all.json';
+      const blob = new Blob([JSON.stringify(pkg, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+      URL.revokeObjectURL(url); a.remove();
+    } catch(e) { console.warn('Download export failed', e); }
+  });
+}
+/* ---------- Search & filter handlers (basic) ---------- */
+searchInput.addEventListener('input', ()=> {
+  // simple client-side search: filter rows whose any field includes text
+  const q = (searchInput.value || '').toLowerCase();
+  Array.from(compTableBody.children).forEach(tr=>{
+    const text = Array.from(tr.querySelectorAll('input.cell-input')).map(i=>i.value.toLowerCase()).join(' ');
+    tr.style.display = text.includes(q) ? '' : 'none';
+  });
+});
+filterSelect.addEventListener('change', ()=> {
+  // basic filter by assigned section id
+  const val = filterSelect.value;
+  if(!val){ Array.from(compTableBody.children).forEach(tr=> tr.style.display=''); return; }
+  Array.from(compTableBody.children).forEach(tr=>{
+    const comp = state.components.find(c => c.id === tr.dataset.id);
+    tr.style.display = (comp && comp.sections && comp.sections.includes(val)) ? '' : 'none';
+  });
+});
+/* ---------- Column controls ---------- */
+addColumnBtn.addEventListener('click', ()=> {
+  addColumn(newColNameInput.value);
+  newColNameInput.value = '';
+});
+newColNameInput.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    addColumn(newColNameInput.value);
+    newColNameInput.value = '';
+  }
+});
+resetColumnsBtn.addEventListener('click', ()=> resetColumnsToDefault());
+/* ---------- Items: events ---------- */
+if(saveCurrentAsItemBtn){
+  saveCurrentAsItemBtn.addEventListener('click', ()=>{
+    const suggested = (getCurrentItem()?.name) || ('Item ' + (state.items.length + 1));
+    const nm = prompt('Name for current item:', suggested);
+    if(nm === null) return;
+    saveCurrentAsItem(nm.trim() || suggested);
+  });
+}
+if(saveCurrentItemBtn){
+  saveCurrentItemBtn.addEventListener('click', ()=>{
+    if(state.currentItemId){
+      persistCurrentItemIfBound();
+      try{ (window.AppUtils||{}).showToast?.('Saved.'); }catch(_){}
+    } else {
+      const suggested = 'Item ' + (state.items.length + 1);
+      const nm = prompt('This working set is not saved. Name:', suggested);
+      if(nm === null) return;
+      saveCurrentAsItem(nm.trim() || suggested);
+    }
+  });
+}
+// Items controls
+if(itemsFilterInput){
+  itemsFilterInput.addEventListener('input', ()=>{ state.itemsFilter = itemsFilterInput.value; saveState(); renderItemsTable(); });
+}
+if(itemsSortSelect){
+  itemsSortSelect.addEventListener('change', ()=>{ state.itemsSortKey = itemsSortSelect.value; saveState(); renderItemsTable(); });
+}
+if(itemsSortDirBtn){
+  itemsSortDirBtn.addEventListener('click', ()=>{ state.itemsSortDir = (state.itemsSortDir==='asc') ? 'desc' : 'asc'; saveState(); itemsSortDirBtn.textContent = (state.itemsSortDir==='asc')?'Asc':'Desc'; renderItemsTable(); });
+}
+if(itemsToggleBtn){
+  itemsToggleBtn.addEventListener('click', ()=>{ state.itemsCollapsed = !state.itemsCollapsed; saveState(); syncItemsPanelUI(); });
+}
+/* ---------- Admin open/close ---------- */
+openAdmin.addEventListener('click', ()=> {
+  adminModal.style.display = 'block'; renderAdminComponents(); refreshSectionsUI();
+});
+closeAdmin.addEventListener('click', ()=> adminModal.style.display = 'none');
+// Close admin on ESC or clicking the backdrop
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && adminModal.style.display === 'block'){
+    adminModal.style.display = 'none';
+  }
+});
+adminModal.addEventListener('click', (e)=>{
+  if(e.target && e.target.classList && e.target.classList.contains('modal')){
+    adminModal.style.display = 'none';
+  }
+});
+/* ---------- Render helpers ---------- */
+function initialRender(){
+  ensureDefaultColumns();
+  renderSVG();
+  renderAdminComponents();
+  refreshSectionsUI();
+  renderTable();
+  renderItemsTable();
+  syncItemsPanelUI();
+}
+initialRender();
+// Initialize recipients admin
+try{ wireRecipientsAdmin(); }catch(_){}
+/* ---------- Small compatibility helpers used earlier ---------- */
+function renderComponentsTable(){ renderTable(); }
+/* ---------- End ---------- */
+</script>
+<script>
+// Global keyboard shortcuts removed per request
+</script>
+</div>
+  <div class="ds-footer">&copy; 2025<br/>All Rights Reserved | Drake Lighting Inc.</div>
+        
+    </div>
+  </div>
+
+<!-- Help FAB (fixed on right) -->
+<button id="helpFab" class="help-fab" type="button" aria-controls="helpPanel" aria-expanded="false">
+  <span class="help-dot" aria-hidden="true"></span>
+  <span>Help</span>
+</button>
+<!-- Right-side Help Drawer -->
+<aside id="helpPanel" class="help-panel" role="dialog" aria-modal="true" aria-label="Page help" aria-hidden="true">
+  <header>
+    <strong>Help</strong>
+    <button id="helpClose" class="help-close" type="button" title="Close help">Close</button>
+  </header>
+    <div class="hp-body">
+    <h2 class="hp-title">Quick Actions & Tips</h2>
+    <div class="row" style="gap:8px; margin-bottom:8px">
+      <input id="adminHelpSearch" class="ds-input" type="search" placeholder="Search help� (e.g. upload, sections, publish)" style="flex:1; min-width:120px" aria-label="Search help" />
+    </div>
+    <ol id="adminHelpList" class="hp-list">
+      <li data-tags="upload svg image import">
+        <strong>Upload SVG:</strong> Choose an SVG to start editing.
+        <div style="margin-top:6px">
+          <button id="adminHelpActionUpload" class="ds-btn ds-ghost" type="button">Open file picker</button>
+        </div>
+      </li>
+      <li data-tags="sections draw polygon create">
+        <strong>Create sections:</strong> Start drawing and save the polygon.
+      </li>
+      <li data-tags="columns table edit add rename reorder">
+        <strong>Components table:</strong> Add columns, rename headers, drag to reorder, edit cells inline.
+      </li>
+      <li data-tags="items save version">
+        <strong>Saved items:</strong> Save current or save as new item.
+      </li>
+      <li data-tags="publish export json viewer exploded">
+        <strong>Publish:</strong> Export a JSON package for Viewer/Exploded.
+        <div style="margin-top:6px">
+          <button id="adminHelpActionPublish" class="ds-btn ds-ghost" type="button">Publish data</button>
+        </div>
+      </li>
+      <li data-tags="theme dark light">
+        <strong>Theme:</strong> Toggle light/dark from the top bar.
+      </li>
+    </ol>
+  </div>
+</aside>
+
+
+
+
+
+<script>
+(function(){
+  if (window.__helpPanelBound__) return; // prevent duplicate bindings if this file is included twice
+  window.__helpPanelBound__ = true;
+  var fab = document.getElementById('helpFab');
+  var panel = document.getElementById('helpPanel');
+  var closeBtn = document.getElementById('helpClose');
+  if(!fab || !panel || !closeBtn) return;
+  function openPanel(){
+    panel.classList.add('open');
+    panel.setAttribute('aria-hidden','false');
+    fab.setAttribute('aria-expanded','true');
+    document.documentElement.style.overflow = 'hidden';
+    try { closeBtn.focus(); } catch(_){}
+  }
+  function closePanel(){
+    panel.classList.remove('open');
+    panel.setAttribute('aria-hidden','true');
+    fab.setAttribute('aria-expanded','false');
+    document.documentElement.style.overflow = '';
+    try { fab.focus(); } catch(_){}
+  }
+  fab.addEventListener('click', function(ev){
+    ev.preventDefault();
+    if(panel.classList.contains('open')) closePanel(); else openPanel();
+  }, {passive:false});
+  closeBtn.addEventListener('click', function(ev){
+    ev.preventDefault();
+    closePanel();
+  }, {passive:false});
+  // Removed ESC-to-close shortcut for help panel per request
+  // Ensure the close button stays above any overlapping elements
+  try{
+    closeBtn.style.position = 'relative';
+    closeBtn.style.zIndex = '2000';
+  }catch(_){}
+})();
+</script>
+
+</body>
+</html>
+
+
+<script>
+// Wire interactive help for Admin
+(function(){
+  try{
+    var hSearch = document.getElementById('adminHelpSearch');
+    var hList = document.getElementById('adminHelpList');
+    var actUpload = document.getElementById('adminHelpActionUpload');
+    var actPublish = document.getElementById('adminHelpActionPublish');
+    function filter(){
+      if(!hList || !hSearch) return;
+      var q = (hSearch.value||'').trim().toLowerCase();
+      hList.querySelectorAll('li').forEach(function(li){
+        var tags = (li.getAttribute('data-tags')||'').toLowerCase();
+        var text = li.textContent.toLowerCase();
+        var show = !q || tags.indexOf(q)!==-1 || text.indexOf(q)!==-1;
+        li.style.display = show ? '' : 'none';
+      });
+    }
+    if(hSearch) hSearch.addEventListener('input', filter);
+    if(actUpload) actUpload.addEventListener('click', function(){ try{ document.getElementById('svgFileInput')?.click(); }catch(_){ } });
+    if(actPublish) actPublish.addEventListener('click', function(){ try{ document.getElementById('publishBtn')?.click(); }catch(_){ } });
+  }catch(_){ }
+})();
+</script>
+
